@@ -312,7 +312,7 @@ y轴区间 ylim
 
 查看数据 head()
 
-筛选数据 subset(d, ColName=='xxx')
+筛选数据 subset(d, ColName=='xxx')
 
 插入行 rbind(d, d1)
 

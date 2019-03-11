@@ -16,11 +16,14 @@ mgPoint = function(dat,x,y,group,fun=F) {
 	multiplot(plotlist=lapply(group, function(e){fun(x,y,e)}), cols=ceiling(sqrt(length(group))))
 }
 
-multiplot = function(..., plotlist=NULL, file, cols=1, layout=NULL){
+multiplot = function(..., plotlist=NULL, file, cols=0, layout=NULL){
 	plots<-c(list(...), plotlist)
 	# str(plotlist)
 	# return(3)
 	numPlots=length(plots)
+	if(!cols){
+		cols = ceiling(sqrt(numPlots));
+	}
 	if(is.null(layout)){
 		layout<-matrix(seq(1, cols*ceiling(numPlots/cols)),ncol=cols, nrow=ceiling(numPlots/cols))
 	}

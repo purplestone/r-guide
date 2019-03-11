@@ -13,6 +13,7 @@
 * [ggplot](#ggplot)
 	* [图例](#图例)
 	* [散点图](#散点图)
+	* [箱型图](#箱型图)
 	* [线图](#线图)
 	* [柱状图](#柱状图)
 	* [饼图](#饼图)
@@ -24,7 +25,7 @@
 	* [拟合曲线图](#拟合曲线图)
 * [绘图库](#绘图库)
 	* [相关性矩阵图-corrplot](#相关性矩阵图-corrplot)
-	* [平行坐标图-corrplot](#平行坐标图-corrplot)
+	* [平行坐标图-parallelplot](#平行坐标图-parallelplot)
 * [案例](#案例)
 	* [相关矩阵](#相关矩阵)
 * [索引](#索引)
@@ -57,6 +58,31 @@ dev.next(which = dev.cur()) # 返回指定绘图窗口的下一个窗口的ID，
 dev.prev(which = dev.cur()) # 返回指定绘图窗口的上一个窗口的ID，默认值为当前活动窗口
 dev.set(which = dev.next()) # 指定特定绘图窗口为当前活动窗口，默认指定当前活动窗口的下一个窗口
 dev.set(1) # 指定特定绘图窗口为当前活动窗口，默认指定当前活动窗口的下一个窗口
+sink('path') # 输出到文件 再次sink()恢复
+
+library(grid);
+mview = function(..., plotlist=NULL, file, cols=0, layout=NULL){
+	plots<-c(list(...), plotlist)
+	# str(plotlist)
+	# return(3)
+	numPlots=length(plots)
+	if(!cols){
+		cols = ceiling(sqrt(numPlots));
+	}
+	if(is.null(layout)){
+		layout<-matrix(seq(1, cols*ceiling(numPlots/cols)),ncol=cols, nrow=ceiling(numPlots/cols))
+	}
+	if(numPlots==1){
+		print(plots[[1]])
+	} else {
+		grid.newpage()
+		pushViewport(viewport(layout=grid.layout(nrow(layout), ncol(layout))))
+		for(i in 1:numPlots){
+			matchidx<-as.data.frame(which(layout==i, arr.ind=TRUE))
+			print(plots[[i]], vp=viewport(layout.pos.row=matchidx$row,layout.pos.col=matchidx$col))
+		}
+	}
+}
 ```
 
 #### 语言
@@ -84,7 +110,7 @@ write.csv(dd,file = "/Sys/path/dir/file.csv", row.names=F)
 * matrix 矩阵
 * array 数组
 * data.frame 数据框
-* factor 因子
+* factor 因子 有序因子ordered
 * list 列表
 * logical 布尔值
 
@@ -96,6 +122,14 @@ as.character(d) # 转为字符串
 as.numeric(d) # 转为数字
 as.factor(d)# 转为因子
 as.vector(mymatrix)
+
+apply(ccc, 1, function(e){
+	d = NULL;
+	r = lapply(e,function(l){if(!is.null(l)){d<<-l[4];l[1]}else(NULL)});
+	print('00000000');
+	print(unlist(r, use.names=F))
+	c(2,3)
+})
 
 ```
 
@@ -265,6 +299,9 @@ t(d)
 * x ^ y #乘幂
 * x %% y #模运算
 * x %/% y #整数除法
+* is.nan(x) #为空
+* is.na(x) #缺失
+* is.infinite(x) #为空
 
 * round() #四舍五入
 * round(x, 2) #保留两位小数
@@ -289,6 +326,9 @@ t(d)
 * substring() #取子字符串
 * strsplit() #切分字符串
 * paste() #连接字符
+* sort() #排序
+* order() #排序序号
+* rev(x) #倒序
 
 
 
@@ -302,6 +342,7 @@ unique()
 length(unique(d$V1))
 aggregate(data=d, cbind(Num=rownames(d)) ~ Type, FUN=length)
 aggregate(data=d, cbind(Num=rownames(d)) ~ Type + Location, FUN=length)
+aggregate(data=infert, cbind(induced, spontaneous) ~ education, FUN=sum)
 ```
 
 ### ggplot
@@ -314,20 +355,29 @@ aggregate(data=d, cbind(Num=rownames(d)) ~ Type + Location, FUN=length)
 
 #### 散点图
 ```r
-ggplot(t, aes(rownames(t),y=Web)) + geom_point(size=0.1, alpha=0.2, show.legend=FALSE)
+ggplot(DNase, aes(conc, density, color=Run)) + geom_point(size=0.1, alpha=0.6) + stat_density2d() + stat_smooth()
+```
+
+#### 箱型图
+```r
+cc = ChickWeight;
+cc$Time = ordered(cc$Time);
+mview(
+	ggplot(ChickWeight, aes(Time,weight, fill=Diet, color=Diet)) + geom_point(size=0.1, alpha=0.7) + stat_smooth(), 
+	ggplot(cc, aes(Time,weight, fill=Diet)) + stat_boxplot()
+)
 ```
 
 
 #### 柱状图
 ```r
-ggplot(t, aes(rownames(t),y=Web)) + geom_bar(stat="identity")
- + geom_text(aes(label=Number))
+ggplot(t, aes(rownames(t),y=Web)) + geom_bar(stat="identity") + geom_text(aes(label=Number))
 ggplot(t, aes(Web)) + geom_bar()
 ```
 
 #### 条状图
 ```r
-ggplot(t, aes(rownames(t),y=Web)) + geom_bar(position=position_stack(reverse = TRUE)) + coord_flip() + theme(legend.position = "top")
+ggplot(t, aes(rownames(t),y=Web)) + geom_bar(position=position_stack(reverse = TRUE)) + coord_flip() + theme(legend.position = "top") # position='fill'
 ```
 
 
@@ -350,6 +400,7 @@ ggplot(t, aes(x=V29, fill=V4)) + geom_histogram(alpha = 0.6) + xlim(1,20000)
 #### 线图
 ```r
 ggplot(t, aes(rownames(t),Sale2015, group=1)) + geom_line()
+ggplot(ChickWeight, aes(Time,weight, color=Diet)) + geom_line(aes(group=Chick)) + geom_point() + stat_smooth()
 ```
 
 #### 山峦图
@@ -418,11 +469,12 @@ corrplot(r, "pie",add=T,addCoef.col = "grey", type="upper",diag=F)
 corrplot(mtcars, method = 'shade',shade.col = NA, tl.col ='black', tl.srt = 45, order = 'AOE')
 
 
-#### 平行坐标图-lattice
+#### 平行坐标图-parallelplot
 
-install.packages('lattice')
-library(lattice)
 ```r
+install.packages('lattice');
+library(lattice);
+parallelplot(tt, group=tt$Plant);
 
 (function(fs) {
 	nr = length(fs);
@@ -447,11 +499,6 @@ library(lattice)
 })(CO2$Type)
 
 
-
-mgPoint(CO2, group=c('Plant','Type'), x=conc, y=uptake);
-
-parallelplot(tt, group=tt$Plant) 
-
 ```
 
 ### 案例
@@ -463,6 +510,29 @@ tapply(tt$V2, tt$V31, mean)
 (aggregate(data=tt, cbind(v=as.numeric(rownames(tt))) ~ V31, FUN=function(x){mean(as.numeric(x))}))
 (aggregate(data=td, Freq ~ Class + Sex + Survived, sum))
 
+
+ccc = tapply((function(a) {l = sapply(apply(a, 1, list), c);names(l) = a[,1];l;})(ChickWeight), list(ChickWeight$Time, ChickWeight$Chick), function(e){
+	r = as.numeric(unlist(e));
+	names(r) = names(unlist(e));
+	r;
+});
+
+t(apply(ccc, 2, function(e){
+	d = NULL;
+	r =  sapply(e, function(e){
+		r=e;
+		if(is.null(e)){
+			r=NaN
+		}else{
+			s = paste(r[1],'Diet',sep=('.'))
+			d <<- r[s]
+			r[1];
+		};
+	});
+	cols = c(r,d);
+	names(cols) = c(rownames(ccc), 'd');
+	cols;
+}))
 ```
 
 
